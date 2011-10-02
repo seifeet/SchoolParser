@@ -77,7 +77,14 @@ namespace SchoolParser
                         string href = node.GetAttributeValue("href", "");
 
                         log.Info(state);
-                        parseSchools(url + href, state);
+                        try
+                        {
+                            parseSchools(url + href, state);
+                        }
+                        catch (Exception ex)
+                        {
+                            log.Error(ex.Message);
+                        }
                     }
 
                     if (state == "Wyoming")
