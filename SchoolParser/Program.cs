@@ -6,6 +6,7 @@ using System.Net;
 using HtmlAgilityPack;
 using System.IO;
 using log4net;
+using System.Text.RegularExpressions;
 
 namespace SchoolParser
 {
@@ -24,20 +25,41 @@ namespace SchoolParser
 
             char[] trimChars = { ',', ' ', '-' };
 
-            if (nodes != null)
+            if (nodes == null || nodes.Count == 0)
+            {
+                nodes = doc.DocumentNode.SelectNodes("//a");
+            }
+
+            if (nodes != null && nodes.Count > 0)
             {
                 foreach (HtmlNode node in nodes)
                 {
                     string parentHTML = node.ParentNode.InnerHtml;
-                    if (parentHTML.Contains(">"))
+                    if (parentHTML.Contains("a>"))
                     {
                         SchoolModel school = new SchoolModel();
 
                         school.State = Util.GetStateAbrv(state);
-                        school.City  = parentHTML.Substring(parentHTML.LastIndexOf(">") + 1);
-                        school.City  = school.City.Trim(trimChars);
-                        school.Url   = node.GetAttributeValue("href", "");
-                        school.Name  = node.InnerHtml.Trim(trimChars);
+                        school.City = parentHTML.Substring(parentHTML.LastIndexOf("a>") + 2);
+                        school.City = Regex.Replace(school.City, @"<[^>]*>", String.Empty);
+                        school.City = school.City.Trim(trimChars);
+                        school.Url = node.GetAttributeValue("href", "");
+                        school.Name = node.InnerHtml.Trim(trimChars);
+
+                        if (school.Name == null || school.Name.Length == 0)
+                        {
+                            continue;
+                        }
+
+                        if (school.City == null || school.City.Length == 0)
+                        {
+                            continue;
+                        }
+
+                        if (school.Url == null || school.Url.Length == 0 || school.Url.Contains("..") || school.Url.Contains("#"))
+                        {
+                            continue;
+                        }
 
                         reader.GetSchool(school);
 
@@ -51,6 +73,10 @@ namespace SchoolParser
                         }
                     }
                 }
+            }
+            else
+            {
+                log.Error("Something went terribly wrong and no schools were found for " + state);
             }
         }
 
